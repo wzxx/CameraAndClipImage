@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior"
+    tools:context=".MainActivity"
+    tools:showIn="@layout/activity_main">
+
+    <TextView
+        android:id="@+id/text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="拍照与裁剪"/>
+
+    <!--显示裁剪后的照片-->
+    <ImageView
+        android:id="@+id/image"
+        android:layout_width="match_parent"
+        android:layout_height="240dp"
+        android:layout_below="@id/text"
+        android:adjustViewBounds="true"
+        android:scaleType="centerInside"/>
+
+    <!--XML定义里的android:adjustViewBounds="true"会将这个ImageView的scaleType设为fitCenter。
+    不过这个fitCenter会被后面定义的scaleType属性覆盖（如果定义了的话），除非在Java代码里再次显示调用setAdjustViewBounds(true)。
+
+    1.如果设置的layout_width与layout_height都是定值，那么设置adjustViewBounds是没有效果的，ImageView将始终是设定的定值的宽高。
+
+    2.如果设置的layout_width与layout_height都是wrap_content,那么设置adjustViewBounds是没有意义的，
+    因为ImageView将始终与图片拥有相同的宽高比（但是并不是相同的宽高值，通常都会放大一些）。
+
+    3.如果两者中一个是定值，一个是wrap_content，比如layout_width="100px",layout_height="wrap_content"时，
+    ImageView的宽将始终是100px，而高则分两种情况：
+（1）当图片的宽小于100px时，layout_height将与图片的高相同，即图片不会缩放，完整显示在ImageView中，ImageView高度与图片实际高度相同。
+     图片没有占满ImageView，ImageView中有空白。
+（2）当图片的宽大于等于100px时，此时ImageView将与图片拥有相同的宽高比，因此ImageView的layout_height值为：100除以图片的宽高比。
+     比如图片是500X500的，那么layout_height是100。图片将保持宽高比缩放，完整显示在ImageView中，并且完全占满ImageView。-->
+
+
+    <!--centerInside:以原图完全显示为目的，将图片的内容完整居中显示，通过按比例缩小原图的size宽(高)等于或小于ImageView的宽(高)。
+                    如果原图的size本身就小于ImageView的size，则原图的size不作任何处理，居中显示在ImageView。-->
+</RelativeLayout>

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                xmlns:app="http://schemas.android.com/apk/res-auto"
+                xmlns:tools="http://schemas.android.com/tools"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@android:color/black"
+                android:orientation="vertical">
+
+    <!--
+    <RelativeLayout
+        android:id="@+id/top"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:background="@android:color/black"
+        android:paddingBottom="@dimen/padding_top"
+        android:paddingTop="@dimen/padding_top">
+
+        <View
+            android:id="@+id/flash"
+            android:layout_width="27dp"
+            android:layout_height="27dp"
+            android:layout_centerVertical="true"
+            android:padding="@dimen/padding_top"
+            />
+
+        <View
+            android:id="@+id/camera_rotate"
+            android:layout_width="27dp"
+            android:layout_height="27dp"
+            android:padding="@dimen/padding_top"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
+            />
+    </RelativeLayout>
+    -->
+
+    <SurfaceView
+        android:id="@+id/surface_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/bottom"/>
+
+    <!--
+    <com.example.clipimage.ClipImageView
+        android:id="@+id/viewfinder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_alignBottom="@id/surface_view"
+        android:layout_alignTop="@id/surface_view"
+        app:pwHeight="2"
+        app:pwWidth="3"/>
+        -->
+
+    <SurfaceView
+        android:id="@+id/viewfinder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_alignBottom="@id/surface_view"
+        android:layout_alignTop="@id/surface_view"/>
+
+    <RelativeLayout
+        android:id="@+id/bottom"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:background="@android:color/black"
+        android:paddingBottom="@dimen/padding_common"
+        android:paddingTop="@dimen/padding_common"
+        tools:layout_marginBottom="40dp">
+
+        <TextView
+            android:id="@+id/cancel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:padding="@dimen/padding_common"
+            android:text="@android:string/cancel"
+            android:textColor="@android:color/white"/>
+
+        <View
+            android:id="@+id/take_photo"
+            android:layout_width="54dp"
+            android:layout_height="54dp"
+            android:layout_centerInParent="true"
+            android:background="@drawable/icon_take_photo"/>
+
+        <View
+            android:id="@+id/camera_rotate"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="@dimen/padding_common"
+            android:layout_centerVertical="true"
+            android:layout_alignParentRight="true"
+            android:layout_marginRight="@dimen/margin_common"
+            android:background="@drawable/icon_shot_transition"/>
+
+    </RelativeLayout>
+
+
+</RelativeLayout>

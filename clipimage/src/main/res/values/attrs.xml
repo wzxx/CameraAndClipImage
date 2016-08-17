@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="ClipImageView">
+        <!--civHeight和civWidth是裁剪框的宽高比例-->
+        <attr name="civHeight" format="integer"/>
+        <attr name="civWidth" format="integer"/>
+        <!--提示文字的内容-->
+        <attr name="civTipText" format="string"/>
+        <!--提示文字的大小-->
+        <attr name="civTipTextSize" format="dimension"/>
+        <!--遮罩层的颜色值-->
+        <attr name="civMaskColor" format="color"/>
+        <!--裁剪内边距-->
+        <attr name="civClipPadding" format="dimension"/>
+
+        <attr name="civClipCircle" format="boolean"/>
+
+        <attr name="civClipRoundCorner" format="dimension|reference"/>
+    </declare-styleable>
+</resources>
