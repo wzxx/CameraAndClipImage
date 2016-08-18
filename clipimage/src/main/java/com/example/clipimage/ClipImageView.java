@@ -22,15 +22,14 @@ import android.widget.ImageView;
 /**
  * Created by wzxx on 16/8/12.
  *
+ * 自定义组件裁剪框。
+ *
  * @author wzxx (wzxxkcer@foxmail.com)
  * @version 2016-08-12 1.0
  * @since 2016-08-12 1.0
  */
 public class ClipImageView extends ImageView implements ScaleGestureDetector.OnScaleGestureListener, View.OnTouchListener {
 
-    /**
-     * final要不要加？？？？
-     */
     private int mMaskColor;//遮罩层颜色
 
     private Paint mPaint;//画笔
@@ -43,17 +42,17 @@ public class ClipImageView extends ImageView implements ScaleGestureDetector.OnS
     private float mScaleMin=2.0f;//图片最小缩放大小
 
     /**
-     * 初始化时的缩放比例
+     * 初始化时的缩放比例，如果图片宽或高大于屏幕，此值将小于0.
      */
     private float mInitScale=1.0f;
 
     /**
-     * 用于存放矩阵。Matrix是一个3*3的矩阵，一共九个值，所以数组大小为9.
+     * 用于存放矩阵的九个值。Matrix是一个3*3的矩阵，一共九个值，所以数组大小为9.
      */
     private final float[] mMatrixValues = new float[9];
 
     /**
-     * 缩放的手势检查
+     * 缩放的手势检测
      */
     private ScaleGestureDetector mScaleGestureDetector=null;
     private final Matrix mScaleMatrix = new Matrix();//对图片进行缩放平移的matrix。初始化。
@@ -91,7 +90,23 @@ public class ClipImageView extends ImageView implements ScaleGestureDetector.OnS
         setScaleType(ScaleType.MATRIX);//用矩形绘制
         //初始化手势检测器，监听双击事件
         mGestureDetector=new GestureDetector(context,
+                /**
+                 * 因为只需要调用onDoubleTap这个回调，所以我们只使用GestureDetector的一个内部类即可，对接口的其他方法实现了空实现。
+                 */
                 new GestureDetector.SimpleOnGestureListener(){//SimpleOnGestureListener是个类
+                    /**
+                     * 1.双击尺寸如何变化？
+                     *
+                     * 我的想法是：根据当前的缩放值，如果是小于2的，双击直接到变为原图的2倍；如果是2，4之间的，双击直接为原图的4倍；
+                     * 其他状态也就是4倍，双击后还原到最初的尺寸。
+                     *
+                     * 2.另一点是：
+                     *
+                     * 双击变化需要一个动画。因为假如initScale＝0.5，双击后变为2，就是瞬间大了4倍，没有一个过渡效果的话，给用户感觉会特别差。
+                     * 所以可以使用postDelay方法执行一个runnable，runnable中再次根据缩放值继续执行。
+                     * @param e
+                     * @return
+                     */
                     @Override
                     public boolean onDoubleTap(MotionEvent e){
                         //如果是正在自动缩放，则直接返回，不进行处理
@@ -105,9 +120,16 @@ public class ClipImageView extends ImageView implements ScaleGestureDetector.OnS
                         float x=e.getX();
                         float y=e.getY();
 
-                        if (getScale()<mScaleMin){//如果当前图片的缩放值小于指定的最小缩放值。mScaleMin为2.0f
+                        if (getScale()<mScaleMin){//如果当前图片的缩放值小于指定的最小缩放值
                             //本来缩放比例就够小啦，所以就设置多线程消息来控制缩放比例为最小缩放值。这下子就自动放大了
                             ClipImageView.this.postDelayed(new AutoScaleRunnable(mScaleMin,x,y),16);//定时器是16毫秒
+                        }else
+                        /**
+                         * @author wzxx
+                         * modified 2016-08-18
+                         */
+                        if(getScale()>=mScaleMin&&getScale()<mScaleMax) {
+                            ClipImageView.this.postDelayed(new AutoScaleRunnable(mScaleMax,x,y),16);
                         }else {//当前图片的缩放值大于初试缩放值，则自动缩小
                             ClipImageView.this.postDelayed(new AutoScaleRunnable(mInitScale,x,y),16);
                         }
@@ -126,7 +148,7 @@ public class ClipImageView extends ImageView implements ScaleGestureDetector.OnS
          * 裁剪框相关参数值的设置
          */
         TypedArray ta=context.obtainStyledAttributes(attrs,R.styleable.ClipImageView);
-        mWidth=ta.getInteger(R.styleable.ClipImageView_civHeight,1);
+        mWidth=ta.getInteger(R.styleable.ClipImageView_civHeight,1);//计算矩形区域的宽度
         mHeight=ta.getInteger(R.styleable.ClipImageView_civHeight,1);
         mClipPadding=ta.getDimensionPixelSize(R.styleable.ClipImageView_civClipPadding,0);
         mTipText=ta.getString(R.styleable.ClipImageView_civTipText);
@@ -171,6 +193,13 @@ public class ClipImageView extends ImageView implements ScaleGestureDetector.OnS
         private float x;
         private float y;
 
+        /**
+         * 传入目标缩放值，根据目标值和当前值，判断应该放大还是缩小。
+         *
+         * @param targetScale
+         * @param x
+         * @param y
+         */
         public AutoScaleRunnable(float targetScale,float x,float y){
             this.mTargetScale=targetScale;
             this.x=x;
@@ -208,14 +237,18 @@ public class ClipImageView extends ImageView implements ScaleGestureDetector.OnS
     }
 
     /**
-     * 边界检查
+     * 边界检查。
+     *
+     * 为什么要酱紫呢。因为随意的中心点放大缩小会导致图片位置的变化，
+     * 最终导致图片宽高大于裁剪框时，图片与裁剪框间出现白边（然而这是为什么我也不太清楚）；图片小于屏幕但是不居中。
+     * 所以就要控制缩放时图片显示的范围。
      */
     private void checkBorder(){
         RectF rect=getMatrixRectF();//当前图片的范围
         float deltaX=0;
         float deltaY=0;
 
-        //假如缩放后图片的宽度大于等于裁剪边界的宽度
+        //假如缩放后图片的宽或高大于裁剪框，则控制范围。
         if (rect.width()>=mClipBorder.width()){
             if (rect.left>mClipBorder.left){
                 deltaX=-rect.left+mClipBorder.left;
@@ -226,7 +259,6 @@ public class ClipImageView extends ImageView implements ScaleGestureDetector.OnS
             }
         }
 
-        //假如缩放后图片的高度大于等于裁剪边界的高度
         if (rect.height()>=mClipBorder.height()){
             if (rect.top>mClipBorder.top){
                 deltaY=-rect.top+mClipBorder.top;
@@ -235,6 +267,18 @@ public class ClipImageView extends ImageView implements ScaleGestureDetector.OnS
             if (rect.bottom<mClipBorder.bottom){
                 deltaY=mClipBorder.bottom-rect.bottom;
             }
+        }
+
+        /**
+         * @author wzxx
+         * modified 2016-08-18
+         * */
+        //如果宽或高小于裁剪框，则让其居中
+        if (rect.width()<mClipBorder.width()){
+            deltaX=mClipBorder.width()*0.5f-(rect.right-mClipBorder.left)+0.5f*rect.width();
+        }
+        if (rect.height()<mClipBorder.height()){
+            deltaY=mClipBorder.height()*0.5f-(rect.bottom-mClipBorder.top)+0.5f*rect.height();
         }
 
         mScaleMatrix.postTranslate(deltaX,deltaY);//由于缩放是以(0,0)为中心的,所以为了把界面的中心与(0,0)对齐，就要postTranslate
@@ -346,6 +390,15 @@ public class ClipImageView extends ImageView implements ScaleGestureDetector.OnS
     /**
      * 剪切图片
      *
+     * 鸿洋大神是通过创建一个空的bitmap，并根据它创建出一个canvas对象，然后通过draw方法把缩放后的图片绘制到这个bitmap中，
+     * 再调用bitmap.createBitmap得到属于裁剪框的内容。
+     * 1）不过这里已经在onDraw方法里画出裁剪框了所以就不考虑酱紫做。
+     * 2）而且这个方法还有一个问题：它绘制的drawable对象。如果我们设置进去的是一个比较大的bitmap的话，那么就有可能被缩放，
+     *    裁剪的就是缩放后的bitmap而不是原图。
+     *
+     * 所以采用了其他方案：
+     * 保存缩放平移的matrix成员变量进行计算，获取出裁剪框在其的对应范围，然后得到最终图片。
+     *
      * @return 返回剪切后的bitmap对象
      */
     public Bitmap clip(){
@@ -357,8 +410,6 @@ public class ClipImageView extends ImageView implements ScaleGestureDetector.OnS
 
         /**
          * 然后，我们的矩阵值可以通过一个包含9个元素的float数组读出
-         *
-         * Matrix.MSCALE_X为X上的缩放值
          */
         final float[] matrixValues=new float[9];
         mScaleMatrix.getValues(matrixValues);//获得缩放矩阵的这九个值
@@ -369,8 +420,8 @@ public class ClipImageView extends ImageView implements ScaleGestureDetector.OnS
         /**
          * 然后获取图片平移量
          */
-        final float transX=matrixValues[Matrix.MSCALE_X];
-        final float transY=matrixValues[Matrix.MSCALE_Y];
+        final float transX=matrixValues[Matrix.MTRANS_X];
+        final float transY=matrixValues[Matrix.MTRANS_Y];
 
         /**
          * 计算裁剪框对应在图片上的起点及宽高
@@ -381,7 +432,7 @@ public class ClipImageView extends ImageView implements ScaleGestureDetector.OnS
         final float cropHeight=mClipBorder.height()/scale;
 
         /**
-         * 当裁剪出来的宽度超出我们最大宽度时，进行缩放。
+         * 当裁剪出来的宽度超出我们最大宽度时，进行缩放
          */
         Matrix outputMatrix=null;
         if (mMaxOutputWidth>0&&cropWidth>mMaxOutputWidth){
@@ -405,6 +456,10 @@ public class ClipImageView extends ImageView implements ScaleGestureDetector.OnS
         mMaxOutputWidth=maxOutputWidth;
     }
 
+    /**
+     * 获取裁剪时图片的矩阵值，可用于大图的裁剪。
+     * @return
+     */
     public float[] getClipMatrixValues(){
         final float[] matrixValues=new float[9];
         mScaleMatrix.getValues(matrixValues);
@@ -452,14 +507,20 @@ public class ClipImageView extends ImageView implements ScaleGestureDetector.OnS
 
         mPaint.setColor(mMaskColor);
         mPaint.setStyle(Paint.Style.FILL);//设置画笔的风格为实心
+        //绘制上边
         canvas.drawRect(0,0,width,mClipBorder.top,mPaint);
+        //绘制下边
         canvas.drawRect(0,mClipBorder.bottom,width,height,mPaint);
+        //绘制左边
         canvas.drawRect(0,mClipBorder.top,mClipBorder.left,mClipBorder.bottom,mPaint);
+        //绘制右边
         canvas.drawRect(mClipBorder.right,mClipBorder.top,width,mClipBorder.bottom,mPaint);
 
+        //绘制外边框
         mPaint.setColor(Color.WHITE);
-        mPaint.setStrokeWidth(1);//设置画笔线的宽度
+        mPaint.setStrokeWidth(1);//设置边框的宽度为1（单位是dp）
         mPaint.setStyle(Paint.Style.STROKE);
+        //绘制中间的正方形裁剪框
         canvas.drawRect(mClipBorder.left,mClipBorder.top,mClipBorder.right,mClipBorder.bottom,mPaint);
 
         if (mTipText!=null){//如果存在提示文字,就要canvas画出来撒
@@ -496,6 +557,12 @@ public class ClipImageView extends ImageView implements ScaleGestureDetector.OnS
         postResetImageMatrix();
     }
 
+    /**
+     * 重写函数onScale，完成缩放步骤。
+     *
+     * @param detector
+     * @return
+     */
     @Override
     public boolean onScale(ScaleGestureDetector detector){
         float scale=getScale();//获得当前缩放比例
@@ -506,7 +573,7 @@ public class ClipImageView extends ImageView implements ScaleGestureDetector.OnS
         }
 
         /**
-         * 缩放的范围控制
+         * 缩放的范围控制。不能超过最大缩放比例，也不能低于初始缩放比例1.0f
          */
         if ((scale<mScaleMax&&scaleFactor>1.0f)||(scale>mInitScale&&scaleFactor<1.0f)){
             /**
@@ -522,9 +589,9 @@ public class ClipImageView extends ImageView implements ScaleGestureDetector.OnS
             /**
              * 设置缩放比例
              */
-            mScaleMatrix.postScale(scaleFactor,scaleFactor,detector.getFocusX(),detector.getFocusY());//后两个参数是收汁缩放的中心点坐标
+            mScaleMatrix.postScale(scaleFactor,scaleFactor,detector.getFocusX(),detector.getFocusY());//后两个参数是手势缩放的中心点坐标
             checkBorder();
-            setImageMatrix(mScaleMatrix);//实现
+            setImageMatrix(mScaleMatrix);
         }
         return true;
     }
@@ -548,6 +615,9 @@ public class ClipImageView extends ImageView implements ScaleGestureDetector.OnS
         }
         mScaleGestureDetector.onTouchEvent(event);//触发缩放手势
 
+        /**
+         * 放大后的移动。当然，必须长或宽大于屏幕才可以移动。
+         */
         float x=0,y=0;
         final int pointerCount=event.getPointerCount();//拿到触摸点的个数
 
@@ -590,7 +660,7 @@ public class ClipImageView extends ImageView implements ScaleGestureDetector.OnS
                         }
 
                         mScaleMatrix.postTranslate(dx,dy);
-                        checkBorder();
+                        checkBorder();//设置完了以后，还要再校验一下，不能把图片移动的与屏幕边界出现白边。
                         setImageMatrix(mScaleMatrix);
                     }
                 }
@@ -601,6 +671,10 @@ public class ClipImageView extends ImageView implements ScaleGestureDetector.OnS
             case MotionEvent.ACTION_CANCEL:
                 lastPointerCount=0;
                 break;
+            /**
+             * 没有复写ACTION_DOWN是因为，ACTION_DOWN在多点触控的情况下，只要有一个手指按下状态，其他手指按下不会再次触发ACTION_DOWN，
+             * 但是多个手指以后，触摸点的平均值会发生很大变化，所以我们没有用到ACTION_DOWN。每当触摸点数量变化，我们就会更新当前的mLastX，mLastY。
+             */
         }
         return true;
     }

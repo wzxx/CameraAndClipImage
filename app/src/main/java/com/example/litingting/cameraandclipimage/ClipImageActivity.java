@@ -10,9 +10,11 @@ import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.media.ExifInterface;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.os.AsyncTaskCompat;
+import android.support.v4.view.ViewPager;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -21,6 +23,7 @@ import com.example.clipimage.ClipImageView;
 import com.example.litingting.cameraandclipimage.helper.PhotoActionHelper;
 import com.example.litingting.cameraandclipimage.utils.IOUtils;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
@@ -38,6 +41,8 @@ public class ClipImageActivity extends Activity implements View.OnClickListener{
     private ClipImageView mClipImageView;
     private TextView mCancel;
     private TextView mClip;
+
+//    private ViewPager mViewPager;
 
     private String mOutput;
     private String mInput;
@@ -68,8 +73,8 @@ public class ClipImageActivity extends Activity implements View.OnClickListener{
         mInput = PhotoActionHelper.getInputPath(data);
         mMaxWidth = PhotoActionHelper.getMaxOutputWidth(data);
 
-        setImageAndClipParams(); //大图裁剪
-//        mClipImageView.setImageURI(Uri.fromFile(new File(mInput)));
+//        setImageAndClipParams(); //大图裁剪
+        mClipImageView.setImageURI(Uri.fromFile(new File(mInput)));
         mDialog = new ProgressDialog(this);
         mDialog.setMessage(getString(R.string.msg_clipping_image));
     }
@@ -82,7 +87,8 @@ public class ClipImageActivity extends Activity implements View.OnClickListener{
                 onBackPressed();
                 break;
             case R.id.clip:
-                clipImage();
+//                clipImage();
+                mClipImageView.clip();
                 break;
             default:// do nothing
         }
@@ -97,18 +103,22 @@ public class ClipImageActivity extends Activity implements View.OnClickListener{
         super.onBackPressed();
     }
 
-    /********************************************内部调用函数**********************************************/
+    /***********************************************内部调用函数**********************************************/
 
 
+    /**
+     * 1.大图的处理，缩放到裁剪框的大小。
+     * 2.对有些系统返回旋转过的图片进行处理。
+     */
     private void setImageAndClipParams(){
-        mClipImageView.post(new Runnable() {
+        mClipImageView.post(new Runnable() {//增加新线程
             @Override
             public void run() {
                 mClipImageView.setMaxOutputWidth(mMaxWidth);
 
-                mDegree=readPictureDegree(mInput);
+                mDegree=readPictureDegree(mInput);//读取图片旋转的角度
 
-                final boolean isRotate = (mDegree == 90 || mDegree == 270);
+                final boolean isRotate = (mDegree == 90 || mDegree == 270);//假如是90度或者270度就是旋转了
 
                 final BitmapFactory.Options options = new BitmapFactory.Options();
                 options.inJustDecodeBounds = true;
@@ -189,7 +199,7 @@ public class ClipImageActivity extends Activity implements View.OnClickListener{
     }
 
     /**
-     * 异步消息执行裁剪（开启新线程）
+     * 异步消息执行裁剪（开启新线程）。
      */
     private void clipImage() {
         if (mOutput != null) {
